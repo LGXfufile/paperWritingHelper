@@ -10,6 +10,7 @@ SAVE_EVERY_N_LINES = 5  # 每处理多少行保存一次
 ds_is_open = True  # 是否启用DeepSeek接口
 
 # 初始化DeepSeek客户端
+# 清洗输出文件格式： 旅游要素	评论词	情感态度	评论索引
 client = OpenAI(api_key="sk-b56d299a263d4570a59580b1082a262e", base_url="https://api.deepseek.com")
 
 # 全局变量用于中断处理

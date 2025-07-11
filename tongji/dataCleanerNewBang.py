@@ -7,6 +7,7 @@ from openai import OpenAI
 import time
 
 # 初始化DeepSeek客户端
+# 评论清洗，去除无效词，去除敏感词，去除城市名，调用deepseek清洗只保留和西湖相关的
 client = OpenAI(api_key="sk-b56d299a263d4570a59580b1082a262e", base_url="https://api.deepseek.com")
 
 # 全局变量：每N行原始数据保存一次结果
