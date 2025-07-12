@@ -87,8 +87,15 @@ def process_single_element(element, df_comments, sentiment_stats_map):
 
     pos_keywords = set()
     neg_keywords = set()
-    pos_count = sentiment_stats_map.get(element, {}).get('正面', 0)
-    neg_count = sentiment_stats_map.get(element, {}).get('负面', 0)
+    stats = sentiment_stats_map.get(element, {'正面': 0, '负面': 0, '中性': 0})
+    pos_count = stats['正面']
+    neg_count = stats['负面']
+    neutral_count = stats['中性']
+
+    total = pos_count + neg_count + neutral_count
+    pos_percentage = (pos_count / total * 100) if total > 0 else 0.0
+    neg_percentage = (neg_count / total * 100) if total > 0 else 0.0
+    neutral_percentage = (neutral_count / total * 100) if total > 0 else 0.0
 
     for _, row in filtered_comments.iterrows():
         if not continue_processing:
@@ -110,14 +117,10 @@ def process_single_element(element, df_comments, sentiment_stats_map):
                 if len(neg_keywords) >= 5:
                     neg_keywords = set(list(neg_keywords)[:5])
 
-    total = pos_count + neg_count
-    pos_percentage = (pos_count / total * 100) if total > 0 else 0
-    neg_percentage = (neg_count / total * 100) if total > 0 else 0
-
     top_pos = ", ".join(pos_keywords) if pos_keywords else ""
     top_neg = ", ".join(neg_keywords) if neg_keywords else ""
 
-    sentiment_stat = f"正面({pos_percentage:.1f}%), 负面({neg_percentage:.1f}%)"
+    sentiment_stat = f"正面({pos_percentage:.1f}%), 负面({neg_percentage:.1f}%), 中性({neutral_percentage:.1f}%)"
 
     if top_pos or top_neg:
         result = {
@@ -160,12 +163,23 @@ def read_sentiment_stats(file_path):
     try:
         df = pd.read_excel(file_path, sheet_name=0)
         for index, row in df.iterrows():
-            element = row.iloc[0]  # ✅ 改为 iloc
-            sentiment = row.iloc[2]  # ✅ 改为 iloc
+            element = str(row.iloc[0]).strip()  # 第一列：关键词
+            sentiment = str(row.iloc[2]).strip().lower()  # 第三列：情感倾向
+
             if element not in sentiment_stats_map:
-                sentiment_stats_map[element] = {'正面': 0, '负面': 0}
-            if sentiment in sentiment_stats_map[element]:
-                sentiment_stats_map[element][sentiment] += 1
+                sentiment_stats_map[element] = {'正面': 0, '负面': 0, '中性': 0}
+
+            if sentiment == '正面':
+                sentiment_stats_map[element]['正面'] += 1
+            elif sentiment == '负面':
+                sentiment_stats_map[element]['负面'] += 1
+            else:
+                sentiment_stats_map[element]['中性'] += 1
+
+        print("📊 情感统计映射构建完成：")
+        for k, v in sentiment_stats_map.items():
+            print(f"   📌 '{k}': {v}")
+
     except Exception as e:
         print(f"❌ 无法读取情感统计数据文件: {e}")
     return sentiment_stats_map
