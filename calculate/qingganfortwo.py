@@ -4,6 +4,12 @@ from openpyxl import load_workbook
 from collections import Counter
 import pandas as pd
 
+# 🔁 控制是否输出额外的情感分析列（主要正面/负面描述词）
+# 输出表格列控制
+# ENABLE_EXTRA_COLUMNS = True: 输出四列：旅游要素、情感倾向统计、主要正面描述词、主要负面描述词
+# ENABLE_EXTRA_COLUMNS = False: 只输出两列：旅游要素、情感倾向统计
+ENABLE_EXTRA_COLUMNS = False  # 修改这个开关即可控制输出格式
+
 
 # ✅ 提取红色字体关键词
 def extract_red_keywords(file_path):
@@ -13,6 +19,7 @@ def extract_red_keywords(file_path):
     :return: 红色关键词列表
     """
     print(f"🔍 正在从 {file_path} 中提取红色关键词...")
+
     red_keywords = []
 
     try:
@@ -78,42 +85,59 @@ def generate_statistics_excel(red_elements, data_file_path, output_file_path):
             comment = str(row.iloc[1]).strip()
             sentiment = str(row.iloc[2]).strip()
 
-            sentiment_counter[sentiment] += 1
-
             if sentiment == "正面":
+                sentiment_counter["正面"] += 1
                 pos_comments.append(comment)
             elif sentiment == "负面":
+                sentiment_counter["负面"] += 1
                 neg_comments.append(comment)
 
-        total = sum(sentiment_counter.values())
-        sentiment_str = ", ".join([f"{k}（{v / total * 100:.0f}%）"
-                                   for k, v in sentiment_counter.items()])
+        total = sentiment_counter["正面"] + sentiment_counter["负面"]
+        if total == 0:
+            print(f"⚠️ 关键词 '{element}' 没有有效的‘正面’或‘负面’数据。")
+            continue
+
+        positive_percent = sentiment_counter["正面"] / total * 100
+        negative_percent = sentiment_counter["负面"] / total * 100
+
+        parts = []
+        if positive_percent > 0:
+            parts.append(f"正面（{positive_percent:.0f}%）")
+        if negative_percent > 0:
+            parts.append(f"负面（{negative_percent:.0f}%）")
+
+        sentiment_str = ", ".join(parts)
 
         top_pos = ", ".join([item for item, _ in Counter(pos_comments).most_common(5)])
         top_neg = ", ".join([item for item, _ in Counter(neg_comments).most_common(5)])
 
-        # 只有当正负描述词不同时为空时才保留
-        if top_pos or top_neg:
-            stats.append({
-                "旅游要素": element,
-                "情感倾向统计": sentiment_str,
-                "主要正面描述词": top_pos,
-                "主要负面描述词": top_neg
-            })
-            print(f"📊 关键词 '{element}' 统计完成：")
-            print(f"   ➕ 正面描述词：{top_pos}")
-            print(f"   ➖ 负面描述词：{top_neg}")
-            print(f"   📊 情感分布：{sentiment_str}")
-        else:
-            print(f"🗑️ 删除空行：关键词 '{element}' 的主要正/负面描述词均为空。")
+        stat_data = {
+            "旅游要素": element,
+            "情感倾向统计": sentiment_str,
+        }
+
+        if ENABLE_EXTRA_COLUMNS:
+            stat_data["主要正面描述词"] = top_pos
+            stat_data["主要负面描述词"] = top_neg
+
+        stats.append(stat_data)
+        print(f"📊 关键词 '{element}' 统计完成：")
+        print(f"   📊 情感分布：{sentiment_str}")
+        if ENABLE_EXTRA_COLUMNS:
+            print(f"   ➕ 主要正面描述词：{top_pos}")
+            print(f"   ➖ 主要负面描述词：{top_neg}")
 
     if not stats:
         print("❌ 没有有效的统计数据可输出。")
         return
 
-    result_df = pd.DataFrame(stats, columns=[
-        "旅游要素", "情感倾向统计", "主要正面描述词", "主要负面描述词"
-    ])
+    # 动态设置列名
+    if ENABLE_EXTRA_COLUMNS:
+        columns_order = ["旅游要素", "情感倾向统计", "主要正面描述词", "主要负面描述词"]
+    else:
+        columns_order = ["旅游要素", "情感倾向统计"]
+
+    result_df = pd.DataFrame(stats, columns=columns_order)
 
     # 保存到Excel
     try:
@@ -147,7 +171,7 @@ def main():
             data_file = f
 
     if not red_file:
-        print("❌ 未找到以 '1_' 开头的红色关键词提取文件,请确保该文件存在且命名正确。")
+        print("❌ 未找到以 '1_' 开头的红色关键词提取文件，请确保该文件存在且命名正确。")
         return
     if not data_file:
         print("❌ 未找到以 '2_' 开头的待分析文件，请确保该文件存在且命名正确。")
@@ -161,6 +185,27 @@ def main():
 
     # 提取红色关键词
     red_elements = extract_red_keywords(file1_path)
+
+    # 示例：将以下关键词全部添加到 red_keywords 列表中
+    keywords = [
+        "荷花",
+        "湖水",
+        "荷叶",
+        "西湖美景三月天嘞春雨如酒柳如烟",
+        "山色空蒙雨亦奇",
+        "接天莲叶无穷碧",
+        "预约",
+        "路线",
+        "费",
+        "门票",
+        "酒店",
+        "楼外楼",
+        "停车",
+        "日落"
+    ]
+
+    for keyword in keywords:
+        red_elements.append(keyword)
     if not red_elements:
         print("❌ 没有提取到任何红色关键词，请检查输入文件格式或颜色设置。")
         return
