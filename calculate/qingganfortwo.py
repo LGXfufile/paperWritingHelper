@@ -44,6 +44,7 @@ def extract_red_keywords(file_path):
 
 
 # ✅ 生成统计结果Excel
+# ✅ 生成统计结果Excel
 def generate_statistics_excel(red_elements, data_file_path, output_file_path):
     """
     根据红色关键词和数据文件生成统计结果表格。
@@ -77,28 +78,31 @@ def generate_statistics_excel(red_elements, data_file_path, output_file_path):
             print(f"⚠️ 未找到关键词 '{element}' 在第二列的相关数据。")
             continue
 
-        sentiment_counter = Counter()
+        pos_count = 0
+        neg_count = 0
         pos_comments = []
         neg_comments = []
 
+        # 遍历每一行，记录正面/负面评论，并收集对应评论词
         for _, row in filtered.iterrows():
             comment = str(row.iloc[1]).strip()
             sentiment = str(row.iloc[2]).strip()
 
             if sentiment == "正面":
-                sentiment_counter["正面"] += 1
+                pos_count += 1
                 pos_comments.append(comment)
             elif sentiment == "负面":
-                sentiment_counter["负面"] += 1
+                neg_count += 1
                 neg_comments.append(comment)
 
-        total = sentiment_counter["正面"] + sentiment_counter["负面"]
+        total = len(filtered)  # 所有匹配评论数（包括中性、无等）
+
         if total == 0:
-            print(f"⚠️ 关键词 '{element}' 没有有效的‘正面’或‘负面’数据。")
+            print(f"⚠️ 关键词 '{element}' 没有匹配的评论。")
             continue
 
-        positive_percent = sentiment_counter["正面"] / total * 100
-        negative_percent = sentiment_counter["负面"] / total * 100
+        positive_percent = (pos_count / total) * 100
+        negative_percent = (neg_count / total) * 100
 
         parts = []
         if positive_percent > 0:
