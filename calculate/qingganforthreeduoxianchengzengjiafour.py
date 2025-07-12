@@ -83,19 +83,21 @@ def analyze_sentiment(comment):
 
 def process_single_element(element, df_comments, sentiment_stats_map):
     print(f"🔎 开始处理关键词: '{element}'")
+
+    # 从sentiment_stats_map获取该关键词的情感统计信息
+    stats = sentiment_stats_map.get(element, {'正面': 0, '负面': 0})
+    pos_count = stats['正面']
+    neg_count = stats['负面']
+
+    total = pos_count + neg_count
+    pos_percentage = (pos_count / total * 100) if total > 0 else 0.0
+    neg_percentage = (neg_count / total * 100) if total > 0 else 0.0
+
+    # 筛选出包含当前关键词的所有评论
     filtered_comments = df_comments[df_comments.iloc[:, 0].astype(str).str.contains(element, case=False, na=False)]
 
     pos_keywords = set()
     neg_keywords = set()
-    stats = sentiment_stats_map.get(element, {'正面': 0, '负面': 0, '中性': 0})
-    pos_count = stats['正面']
-    neg_count = stats['负面']
-    neutral_count = stats['中性']
-
-    total = pos_count + neg_count + neutral_count
-    pos_percentage = (pos_count / total * 100) if total > 0 else 0.0
-    neg_percentage = (neg_count / total * 100) if total > 0 else 0.0
-    neutral_percentage = (neutral_count / total * 100) if total > 0 else 0.0
 
     for _, row in filtered_comments.iterrows():
         if not continue_processing:
@@ -120,7 +122,7 @@ def process_single_element(element, df_comments, sentiment_stats_map):
     top_pos = ", ".join(pos_keywords) if pos_keywords else ""
     top_neg = ", ".join(neg_keywords) if neg_keywords else ""
 
-    sentiment_stat = f"正面({pos_percentage:.1f}%), 负面({neg_percentage:.1f}%), 中性({neutral_percentage:.1f}%)"
+    sentiment_stat = f"正面({pos_percentage:.1f}%), 负面({neg_percentage:.1f}%)"
 
     if top_pos or top_neg:
         result = {
@@ -136,6 +138,31 @@ def process_single_element(element, df_comments, sentiment_stats_map):
     else:
         print(f"🗑️ 删除空行：关键词 '{element}' 的主要正/负面描述词均为空。")
         return None
+
+
+def read_sentiment_stats(file_path):
+    sentiment_stats_map = {}
+    try:
+        df = pd.read_excel(file_path, sheet_name=0)
+        for index, row in df.iterrows():
+            element = str(row.iloc[0]).strip()  # 第一列：关键词
+            sentiment = str(row.iloc[2]).strip().lower()  # 第三列：情感倾向
+
+            if element not in sentiment_stats_map:
+                sentiment_stats_map[element] = {'正面': 0, '负面': 0}
+
+            if sentiment == '正面':
+                sentiment_stats_map[element]['正面'] += 1
+            elif sentiment == '负面':
+                sentiment_stats_map[element]['负面'] += 1
+
+        print("📊 情感统计映射构建完成：")
+        for k, v in sentiment_stats_map.items():
+            print(f"   📌 '{k}': {v}")
+
+    except Exception as e:
+        print(f"❌ 无法读取情感统计数据文件: {e}")
+    return sentiment_stats_map
 
 
 def extract_red_keywords(file_path):
@@ -156,33 +183,6 @@ def extract_red_keywords(file_path):
     except Exception as e:
         print(f"❌ 读取文件失败 {file_path}: {e}")
     return red_keywords
-
-
-def read_sentiment_stats(file_path):
-    sentiment_stats_map = {}
-    try:
-        df = pd.read_excel(file_path, sheet_name=0)
-        for index, row in df.iterrows():
-            element = str(row.iloc[0]).strip()  # 第一列：关键词
-            sentiment = str(row.iloc[2]).strip().lower()  # 第三列：情感倾向
-
-            if element not in sentiment_stats_map:
-                sentiment_stats_map[element] = {'正面': 0, '负面': 0, '中性': 0}
-
-            if sentiment == '正面':
-                sentiment_stats_map[element]['正面'] += 1
-            elif sentiment == '负面':
-                sentiment_stats_map[element]['负面'] += 1
-            else:
-                sentiment_stats_map[element]['中性'] += 1
-
-        print("📊 情感统计映射构建完成：")
-        for k, v in sentiment_stats_map.items():
-            print(f"   📌 '{k}': {v}")
-
-    except Exception as e:
-        print(f"❌ 无法读取情感统计数据文件: {e}")
-    return sentiment_stats_map
 
 
 def signal_handler(sig, frame):
@@ -238,6 +238,25 @@ def main():
     print(f"📄 使用文件作为评论来源: {comments_file}")
 
     red_elements = extract_red_keywords(file1_path)
+    keywords = [
+        "荷花",
+        "湖水",
+        "荷叶",
+        "西湖美景三月天嘞春雨如酒柳如烟",
+        "山色空蒙雨亦奇",
+        "接天莲叶无穷碧",
+        "预约",
+        "路线",
+        "费",
+        "门票",
+        "酒店",
+        "楼外楼",
+        "停车",
+        "日落"
+    ]
+
+    for keyword in keywords:
+        red_elements.append(keyword)
     print(f"🔍 提取到 {len(red_elements)} 个红色关键词: {red_elements}")
     if not red_elements:
         print("❌ 没有提取到任何红色关键词，请检查输入文件格式或颜色设置。")
