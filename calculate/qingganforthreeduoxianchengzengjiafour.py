@@ -238,6 +238,7 @@ def main():
     print(f"📄 使用文件作为评论来源: {comments_file}")
 
     red_elements = extract_red_keywords(file1_path)
+    print(f"🔍 提取到 {len(red_elements)} 个红色关键词: {red_elements}")
     if not red_elements:
         print("❌ 没有提取到任何红色关键词，请检查输入文件格式或颜色设置。")
         return
