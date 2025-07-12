@@ -1,4 +1,5 @@
 import os
+import re
 import time
 from datetime import datetime
 from openpyxl import load_workbook
@@ -11,15 +12,13 @@ import json
 import signal
 
 # 初始化DeepSeek客户端
-# 当前可用，少了第二列
 client = OpenAI(api_key="sk-b56d299a263d4570a59580b1082a262e", base_url="https://api.deepseek.com")
 
 # 全局变量
 continue_processing = True
 lock = threading.Lock()
 final_stats = []
-
-import re
+RUN_KEYWORD_COUNT = 3  # 可设置为数字如 5，或 "all"
 
 
 def analyze_sentiment(comment):
@@ -82,20 +81,14 @@ def analyze_sentiment(comment):
         return None
 
 
-def process_single_element(element, df_comments):
-    """
-    单个关键词的处理逻辑，只提取关键词
-    """
+def process_single_element(element, df_comments, sentiment_stats_map):
     print(f"🔎 开始处理关键词: '{element}'")
-
     filtered_comments = df_comments[df_comments.iloc[:, 0].astype(str).str.contains(element, case=False, na=False)]
-
-    if filtered_comments.empty:
-        print(f"⚠️ 未找到关键词 '{element}' 在第一列的相关评论。")
-        return None
 
     pos_keywords = set()
     neg_keywords = set()
+    pos_count = sentiment_stats_map.get(element, {}).get('正面', 0)
+    neg_count = sentiment_stats_map.get(element, {}).get('负面', 0)
 
     for _, row in filtered_comments.iterrows():
         if not continue_processing:
@@ -117,12 +110,19 @@ def process_single_element(element, df_comments):
                 if len(neg_keywords) >= 5:
                     neg_keywords = set(list(neg_keywords)[:5])
 
+    total = pos_count + neg_count
+    pos_percentage = (pos_count / total * 100) if total > 0 else 0
+    neg_percentage = (neg_count / total * 100) if total > 0 else 0
+
     top_pos = ", ".join(pos_keywords) if pos_keywords else ""
     top_neg = ", ".join(neg_keywords) if neg_keywords else ""
+
+    sentiment_stat = f"正面({pos_percentage:.1f}%), 负面({neg_percentage:.1f}%)"
 
     if top_pos or top_neg:
         result = {
             "旅游要素": element,
+            "情感倾向统计": sentiment_stat,
             "主要正面描述词": top_pos,
             "主要负面描述词": top_neg
         }
@@ -136,17 +136,10 @@ def process_single_element(element, df_comments):
 
 
 def extract_red_keywords(file_path):
-    """
-    提取指定Excel文件第一个Sheet页中所有红色字体的单元格内容。
-    :param file_path: Excel文件路径
-    :return: 红色关键词列表
-    """
     red_keywords = []
-
     try:
         wb = load_workbook(file_path)
         ws = wb.active
-
         for row in ws.iter_rows():
             for cell in row:
                 if cell.font and cell.font.color:
@@ -159,8 +152,23 @@ def extract_red_keywords(file_path):
         print(f"✅ 成功提取到 {len(red_keywords)} 个红色关键词。")
     except Exception as e:
         print(f"❌ 读取文件失败 {file_path}: {e}")
-
     return red_keywords
+
+
+def read_sentiment_stats(file_path):
+    sentiment_stats_map = {}
+    try:
+        df = pd.read_excel(file_path, sheet_name=0)
+        for index, row in df.iterrows():
+            element = row.iloc[0]  # ✅ 改为 iloc
+            sentiment = row.iloc[2]  # ✅ 改为 iloc
+            if element not in sentiment_stats_map:
+                sentiment_stats_map[element] = {'正面': 0, '负面': 0}
+            if sentiment in sentiment_stats_map[element]:
+                sentiment_stats_map[element][sentiment] += 1
+    except Exception as e:
+        print(f"❌ 无法读取情感统计数据文件: {e}")
+    return sentiment_stats_map
 
 
 def signal_handler(sig, frame):
@@ -179,7 +187,7 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    input_folder = os.path.join(current_dir, '..', 'qingganqingxiang')
+    input_folder = os.path.join(current_dir, '..', 'emotionalInputFile')
     output_folder = os.path.join(current_dir, '..', 'outputfile')
 
     if not os.path.exists(output_folder):
@@ -187,10 +195,13 @@ def main():
 
     red_file = None
     comments_file = None
+    sentiment_file = None
 
     for f in os.listdir(input_folder):
         if f.startswith("1_") and f.endswith(".xlsx"):
             red_file = f
+        elif f.startswith("2_") and f.endswith(".xlsx"):
+            sentiment_file = f
         elif f.startswith("3_") and f.endswith(".xlsx"):
             comments_file = f
 
@@ -200,17 +211,24 @@ def main():
     if not comments_file:
         print("❌ 未找到以 '3_' 开头的评论文件。")
         return
+    if not sentiment_file:
+        print("❌ 未找到以 '2_' 开头的情感统计文件。")
+        return
 
     file1_path = os.path.join(input_folder, red_file)
+    file2_path = os.path.join(input_folder, sentiment_file)
     file3_path = os.path.join(input_folder, comments_file)
 
     print(f"\n📄 使用文件提取红色关键词: {red_file}")
+    print(f"📄 使用文件作为情感统计来源: {sentiment_file}")
     print(f"📄 使用文件作为评论来源: {comments_file}")
 
     red_elements = extract_red_keywords(file1_path)
     if not red_elements:
         print("❌ 没有提取到任何红色关键词，请检查输入文件格式或颜色设置。")
         return
+
+    sentiment_stats_map = read_sentiment_stats(file2_path)
 
     try:
         df_comments = pd.read_excel(file3_path, sheet_name=0)
@@ -219,14 +237,19 @@ def main():
         return
 
     unique_elements = set(red_elements)
-    print(f"🔢 共识别到 {len(unique_elements)} 个唯一旅游要素：{unique_elements}")
+    if RUN_KEYWORD_COUNT != "all":
+        try:
+            run_count = int(RUN_KEYWORD_COUNT)
+            unique_elements = list(unique_elements)[:run_count]
+        except ValueError:
+            print("⚠️ RUN_KEYWORD_COUNT 设置错误，默认跑全量数据。")
 
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = []
         for element in unique_elements:
             if not continue_processing:
                 break
-            future = executor.submit(process_single_element, element, df_comments)
+            future = executor.submit(process_single_element, element, df_comments, sentiment_stats_map)
             futures.append(future)
 
         for future in as_completed(futures):
@@ -239,7 +262,7 @@ def main():
 
     if final_stats:
         result_df = pd.DataFrame(final_stats, columns=[
-            "旅游要素", "主要正面描述词", "主要负面描述词"
+            "旅游要素", "情感倾向统计", "主要正面描述词", "主要负面描述词"
         ])
 
         timestamp = datetime.now().strftime('%Y%m%d%H%M%S')

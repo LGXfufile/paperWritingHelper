@@ -70,8 +70,8 @@ def count_keywords_in_excel(file_path, custom_keywords, output_path="output_keyw
 
 # 示例调用
 if __name__ == "__main__":
-    # input_file = "/Users/guangxin/PycharmProjects/pythonProject1/tongji/yijipinglun.xlsx"  # 替换为你的文件路径
+    # input_file = "/Users/guangxin/PycharmProjects/pythonProject1/calculate/yijipinglun.xlsx"  # 替换为你的文件路径
 
-    input_file = "/Users/guangxin/PycharmProjects/pythonProject1/tongji/西湖_帖子_词频.xlsx"
+    input_file = "/Users/guangxin/PycharmProjects/pythonProject1/calculate/西湖_帖子_词频.xlsx"
     custom_keywords = ["人工智能", "大数据", "机器学习", "深度学习", "自然语言处理"]  # 自定义关键词
     count_keywords_in_excel(input_file, custom_keywords)

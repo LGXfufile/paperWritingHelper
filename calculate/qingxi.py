@@ -257,8 +257,8 @@ def filter_comments(input_file, output_file):
 
 
 def main():
-    input_path = "/tongji/LLMinputthreeorigin.xlsx"  # 输入路径（请替换为你的实际路径）
-    output_path = "/Users/guangxin/PycharmProjects/pythonProject1/tongji/outputfile/outputResult.xlsx"  # 输出路径（可以修改）
+    input_path = "/calculate/LLMinputthreeorigin.xlsx"  # 输入路径（请替换为你的实际路径）
+    output_path = "/Users/guangxin/PycharmProjects/pythonProject1/calculate/outputfile/outputResult.xlsx"  # 输出路径（可以修改）
 
     print("开始处理评论数据...")
     filter_comments(input_path, output_path)

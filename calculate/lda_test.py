@@ -99,7 +99,7 @@ def visualize_lda(lda_model, corpus, dictionary, output_file="lda_visual.html"):
 
 # 主函数
 def main():
-    file_path = "/Users/guangxin/PycharmProjects/pythonProject1/tongji/outputfile/outputResult.xlsx"  # 替换为你自己的路径
+    file_path = "/Users/guangxin/PycharmProjects/pythonProject1/calculate/outputfile/outputResult.xlsx"  # 替换为你自己的路径
     print("正在读取Excel文件...")
     comments = read_excel_comments(file_path)
 

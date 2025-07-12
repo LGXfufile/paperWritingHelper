@@ -140,7 +140,7 @@ def visualize_lda(lda_model, corpus, dictionary, output_file="lda_visual.html"):
 
 
 # 7. 生成词云（支持中文）
-def generate_word_clouds(lda_model, num_topics=9, max_words=40, font_path="/Users/guangxin/PycharmProjects/pythonProject1/tongji/SourceHanSans.ttf"):
+def generate_word_clouds(lda_model, num_topics=9, max_words=40, font_path="/Users/guangxin/PycharmProjects/pythonProject1/calculate/SourceHanSans.ttf"):
     # 如果使用非系统字体，请指定字体文件路径，例如：font_path="fonts/simhei.ttf"
     for i in range(num_topics):
         print(f"🎨 正在生成主题 {i} 的词云...")
@@ -162,7 +162,7 @@ def generate_word_clouds(lda_model, num_topics=9, max_words=40, font_path="/User
 
 # 主函数
 def main():
-    file_path = "/Users/guangxin/PycharmProjects/pythonProject1/tongji/outputfile/outputResult.xlsx"  # 替换为你自己的路径
+    file_path = "/Users/guangxin/PycharmProjects/pythonProject1/calculate/outputfile/outputResult.xlsx"  # 替换为你自己的路径
     print("🚀 正在读取Excel文件...")
     comments = read_excel_comments(file_path)
 

@@ -126,7 +126,7 @@ def generate_statistics_excel(red_elements, data_file_path, output_file_path):
 # ✅ 主函数入口
 def main():
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    input_folder = os.path.join(current_dir, '..', 'qingganqingxiang')
+    input_folder = os.path.join(current_dir, '..', 'emotionalInputFile')
     output_folder = os.path.join(current_dir, '..', 'outputfile')
 
     if not os.path.exists(output_folder):

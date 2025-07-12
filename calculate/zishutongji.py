@@ -25,7 +25,7 @@ def count_chinese_characters_in_excel(file_path):
 
 # 使用示例
 if __name__ == "__main__":
-    file_path = "/Users/guangxin/PycharmProjects/pythonProject1/tongji/yijipinglun.xlsx"  # 替换为你的文件路径
+    file_path = "/Users/guangxin/PycharmProjects/pythonProject1/calculate/yijipinglun.xlsx"  # 替换为你的文件路径
     char_count = count_chinese_characters_in_excel(file_path)
     if char_count is not None:
         print(f"总字数（含标点、空格等）: {char_count}")

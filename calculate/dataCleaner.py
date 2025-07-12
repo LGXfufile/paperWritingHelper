@@ -255,8 +255,8 @@ def filter_comments(input_file, output_file, exclusion_file=None):
 
 def main():
     input_path = "/inputFolder/LLMinputthreeorigin.xlsx"  # 输入路径（请替换为你的实际路径）
-    output_path = "/Users/guangxin/PycharmProjects/pythonProject1/tongji/outputfile/outputResult123.xlsx"  # 输出路径（可以修改）
-    exclude_path = "/Users/guangxin/PycharmProjects/pythonProject1/tongji/deletewords.txt"  # 排除词文件路径
+    output_path = "/Users/guangxin/PycharmProjects/pythonProject1/calculate/outputfile/outputResult123.xlsx"  # 输出路径（可以修改）
+    exclude_path = "/Users/guangxin/PycharmProjects/pythonProject1/calculate/deletewords.txt"  # 排除词文件路径
 
     print("开始处理评论数据...")
     filter_comments(input_path, output_path, exclude_path)
